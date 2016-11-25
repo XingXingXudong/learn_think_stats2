@@ -1,6 +1,6 @@
 # coding: utf-8
 
-import src.thinkstats2 as thinkstats2
+import thinkstats2 as thinkstats2
 
 
 def read_fem_preg(dct_file='../data/2002FemPreg.dct', dat_file='../data/2002FemPreg.dat.gz'):
@@ -11,7 +11,7 @@ def read_fem_preg(dct_file='../data/2002FemPreg.dct', dat_file='../data/2002FemP
     :return: DateFrame
     """
     dct = thinkstats2.read_stata_dct(dct_file)
-    df = dct.read_fixd_width(dat_file)
+    df = dct.read_fixd_width(dat_file, compression='gzip')
     return df
 
 if __name__ == "__main__":
