@@ -56,7 +56,12 @@ def read_stata_dct(dct_file, **option):
     var_info = []
 
     for line in open(dct_file, **option):
+<<<<<<< HEAD
         match = re.search(r'_column\(([^)]*)\)', line)
+=======
+        # match = re.search(r'_column\(([^)]*)\)', line)
+        match = re.search(r'_column\(([\d]*)\)', line)
+>>>>>>> 6d6956e5d31442f7ed406b3f82062fda7a84aa1e
         if match:
             start = int(match.group(1))
             t = line.split()
