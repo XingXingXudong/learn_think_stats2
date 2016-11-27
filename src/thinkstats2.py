@@ -81,5 +81,13 @@ def read_stata_dct(dct_file, **option):
     return dct
 
 
+class _DictWrapper(object):
+    """
+    An object that contains a dictionary.
+    """
+
+
+
+
 
 
