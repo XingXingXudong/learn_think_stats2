@@ -92,3 +92,5 @@ ENV/
 # data file
 data/
 
+# idea
+.idea/
