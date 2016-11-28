@@ -246,7 +246,7 @@ class _DictWrapper(object):
         if min(self.d.keys()) is np.nan:
             logging.warning('Hist: contains NaN, may not render correctly')
 
-        return zip(*sorted(self.Items))
+        return zip(*sorted(self.Items()))
 
     def MakeCdf(self, label=None):
         """Make a Cdf."""
@@ -364,7 +364,9 @@ class Test1(object):
     pass
 
 
-
 if __name__ == "__main__":
     hist = Hist([1, 2, 2, 3, 5])
-    print(hist)
+    x, y = hist.Render()
+    print(x)
+    print(y)
+
