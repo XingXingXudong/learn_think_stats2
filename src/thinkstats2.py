@@ -357,6 +357,10 @@ class Pmf(_DictWrapper):
         pass
 
 
+class Test(object):
+    pass
+
+
 if __name__ == "__main__":
     hist = Hist([1, 2, 2, 3, 5])
     print(hist)
