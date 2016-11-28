@@ -360,6 +360,10 @@ class Pmf(_DictWrapper):
 class Test(object):
     pass
 
+class Test1(object):
+    pass
+
+
 
 if __name__ == "__main__":
     hist = Hist([1, 2, 2, 3, 5])
