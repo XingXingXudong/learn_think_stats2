@@ -7,7 +7,7 @@ import src.thinkstats2 as thinkstats2
 import sys
 
 
-def read_fem_preg(dct_file='../data/2002FemPreg.dct', dat_file='../data/2002FemPreg.dat.gz'):
+def ReadFemPreg(dct_file='../data/2002FemPreg.dct', dat_file='../data/2002FemPreg.dat.gz'):
     """
     Reads the NSFG pregnancy data.
     :param dct_file: string file name

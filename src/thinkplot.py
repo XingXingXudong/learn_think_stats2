@@ -6,7 +6,6 @@ greenteapress.com
 """
 
 import numpy as np
-import matplotlib
 import matplotlib.pyplot as pyplot
 
 import warnings
@@ -45,7 +44,7 @@ def _UnderrideColor(options):
         options['color'] = next(color_iter)
     except StopIteration:
         # if you run out of colors, initialize the color iterator and try again.
-        warnings.warn('Run out of colors. Starting over.')
+        warnings.warn('Ran out of colors. Starting over.')
         _Brewer.ClearIter()
         _UnderrideColor()
 
@@ -156,12 +155,16 @@ def Hist(hist, **options):
     options = _Underride(options, label=hist.label)
     options = _Underride(options, align='center')
     if options['align'] == 'left':
-        options['align'] == 'edge'
+        options['align'] = 'edge'
     elif options['align'] == 'right':
-        options['align'] == 'edge'
+        options['align'] = 'edge'
         options['width'] *= -1
 
     Bar(xs, ys, **options)
+
+
+LEGEND = True
+LOC = None
 
 
 def Config(**options):
@@ -188,6 +191,18 @@ def Config(**options):
     val = options.get('xticklabels', None)
 
 
+def Clf():
+    """
+    Clears the figure and any hists that have been set.
+    """
+    global LOC
+    LOC = None
+    _Brewer.ClearIter()
+    pyplot.clf()
+    fig = pyplot.gcf()
+    fig.set_size_inches(8, 6)
+
+
 def Show(**options):
     """
     Shows the plot.
@@ -196,11 +211,107 @@ def Show(**options):
     """
     clf = options.pop('clf', True)
     Config(**options)
-    pylot.show()
+    pyplot.show()
     if clf:
         Clf()
 
 
+def Plotly(**options):
+    """
+    Shows the plot
+    For options, see Config
+    :param options: keyword args used to invoke various pyplot functions
+    """
+    clf = options.pop('clf', True)
+    Config(**options)
+    import plotly.plotly as plotly
+    url = plotly.plot_mpl(pyplot.gcf())
+    if clf:
+        Clf()
+    return url
+
+
+def Save(root=None, formats=None, **options):
+    """
+    Save the plot in the given formats and clears the figure.
+    For options, see Config.
+    :param root: string filename root
+    :param formats: list of string formats
+    :param options: keyword args used to invoke various pyplot functions
+    """
+    clf = options.pop('clf', True)
+    Config(**options)
+
+    if formats is None:
+        formats = ['pdf', 'eps']
+
+    try:
+        formats.remove('plotly')
+        Plotly(clf=False)
+    except ValueError:
+        pass
+
+    if root:
+        for fmt in formats:
+            SaveFormat(root, fmt)
+
+    if clf:
+        Clf()
+
+
+def SaveFormat(root, fmt='eps'):
+    """
+    Writes the current figure to file in the given format.
+    :param root: string filename root
+    :param fmt: string format
+    """
+    filename = '%s.%s' % (root, fmt)
+    print('writing', filename)
+    pyplot.savefig(filename, format=fmt, dpi=300)
+
+
+def PrePlot(num=None, rows=None, cols=None):
+    """
+    Takes hints about what's coming.
+    :param num: number of lines that will be plotted
+    :param rows: number of rows of subplots
+    :param cols: number of columns of subplots
+    """
+    if num:
+        _Brewer.InitIter(num)
+
+    if rows is None and cols is None:
+        return
+
+    if rows is not None and cols is None:
+        cols = 1
+
+    if cols is not None and rows is None:
+        rows = 1
+
+    # resize the image, depending on the number of rows and cols
+    size_map = {(1, 1): (8, 6),
+                (1, 2): (12, 6),
+                (1, 3): (12, 6),
+                (2, 2): (10, 10),
+                (2, 3): (16, 10),
+                (3, 1): (8, 10),
+                (4, 1): (8, 12)}
+
+    if (rows, cols) in size_map:
+        fig = pyplot.gcf()
+        fig.set_size_inches(*size_map[rows, cols])
+
+    # create the first subplot
+    if rows > 1 or cols > 1:
+        ax = pyplot.subplot(rows, cols, 1)
+        global SUBPLOT_ROWS, SUBPLOT_COLS
+        SUBPLOT_ROWS = rows
+        SUBPLOT_COLS = cols
+    else:
+        ax = pyplot.gca()
+
+    return ax
 
 
 

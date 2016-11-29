@@ -17,6 +17,13 @@
 **histogram**: 直方图
 > The most common representation of a distribution is a **histogram**, whichis a graph that shows the **frequency** of each value. Here, the 'frequency' means the number of times the values appers.
 
+**mode** 峰值
+> The value that occurs most frequently in a given set of data.
 
+### 一些差常用来描述分布的特征
 
-
+> **central tendency**: 集中趋势 Do the values tend to cluster around a particular point 
+> **modes**: 峰值 Is there more than one cluster?
+> **spread** 松散 How much variability is there in the values?
+> **tails** 尾 How quickly do the probabilities drop off as we move away from the modes?
+> **outliers**: 异常值, Are there extreme values far from the modes?

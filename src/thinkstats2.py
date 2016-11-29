@@ -112,7 +112,7 @@ class _DictWrapper(object):
         elif isinstance(obj, (_DictWrapper, Cdf, Pdf)):
             self.d.update(obj.Items())
         elif isinstance(obj, pd.Series):
-            self.d.update(obj.values_counts().iteritems())
+            self.d.update(obj.value_counts().iteritems())
         else:
             # finally, treat it like a list
             self.d.update(Counter(obj))
@@ -236,11 +236,10 @@ class _DictWrapper(object):
         """Gets an unstorted sequence of (value, freq/prob) pairs"""
         return self.d.items()
 
-    def Render(self, **options):
+    def Render(self):
         """
         Generates a sequence of points suitable for plotting.
         Note: options are ignored.
-        :param options: ignored
         :return: tuple of (sorted value sequence, freq/prob sequence
         """
         if min(self.d.keys()) is np.nan:
@@ -311,7 +310,7 @@ class _DictWrapper(object):
         Returns the smallest n values, with frequency/probability.
         :param n: number of items to return
         """
-        return sorted(self.d.items(), reverse=True)[:n]
+        return sorted(self.d.items(), reverse=False)[:n]
 
 
 class Hist(_DictWrapper):
@@ -344,6 +343,23 @@ class Hist(_DictWrapper):
             self.Incr(val, -freq)
 
 
+def CohenEffectSize(group1, group2):
+    """
+    Compute Cohen's d.
+    :param group1: Series or NumPy array
+    :param group2: Series or NumPy array
+    :return: float, the Cohen'd
+    """
+    diff = group1.mean() - group2.mean()
+
+    n1, n2 = len(group1), len(group2)
+    var1, var2 = group1.var(), group2.var()
+
+    pooled_var = (n1 * var1 + n2 * var2) / (n1 + n2)  # 这里计算的方式与wikipedia上的稍有不同
+    d = diff/math.sqrt(pooled_var)
+    return d
+
+
 class Pdf(_DictWrapper):
     pass
 
@@ -364,9 +380,4 @@ class Test1(object):
     pass
 
 
-if __name__ == "__main__":
-    hist = Hist([1, 2, 2, 3, 5])
-    x, y = hist.Render()
-    print(x)
-    print(y)
 
