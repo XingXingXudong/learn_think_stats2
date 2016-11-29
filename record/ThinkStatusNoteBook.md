@@ -8,7 +8,7 @@
 **longitudinal study**: 纵向研究
 > Observes a group repeatedly over a period of time.
 
-## Distributions
+# Distributions
 
 **Distributions**
 > One of the best ways to describe a variable is to report the values that appear in the dataset and how many times each value appears.
@@ -27,3 +27,13 @@
 > **spread** 松散 How much variability is there in the values?
 > **tails** 尾 How quickly do the probabilities drop off as we move away from the modes?
 > **outliers**: 异常值, Are there extreme values far from the modes?
+
+# Probability Mass Functions
+
+> **probability mass function(pmf)** is a function that gives the probability that a **discrete random variable** is exactly equal to some value. The probability mass function is often the primary means of defining a **discrete probability distributin**, and such functions exist for either **scalar** or **multivariate random variables** whose **domain** is dicrete.
+> **probability density function(pdf)** is associated with continuous rather than dicrete random variable; the values of the pdf are not probabilities as such: a pdf must be integrated over an interval to yield a probability.
+
+> Probability Mass Function 与直方图的：
+>> Hist maps from values to integer **counters**;
+>> Pmf maps from values to floating-point **probabilities**
+
