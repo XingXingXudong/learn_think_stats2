@@ -369,8 +369,62 @@ class Cdf(_DictWrapper):
 
 
 class Pmf(_DictWrapper):
-    def Normalize(self):
-        pass
+    """
+    Represents a probability mass function.
+    Valuse can be any hashable type; probabilities are floating-point.
+    Pmf are not necessarily normalized.
+    """
+    def Prob(self, x, default=0):
+        """
+        Gets the probability associated with the value x.
+        :param x: number value
+        :param default: value to return if the key is not there
+        :return: flota probablity
+        """
+        return self.d.get(x, default)
+
+    def Probs(self, xs):
+        """Gets probabilities for a sequence of values."""
+        return [self.Probs(x) for x in xs]
+
+    def Percentile(self, percentage):
+        """
+        Computes a percentile of a given Pmf. 计算分位数
+        Note: this is not super efficient. If you are planning to compute more than a few percentiles,
+        compute the Cdf.
+        :param percentage:
+        :return: valu from the Pmf.
+        """
+        p = percentage / 100.0
+        total = 0
+        for val, prob in sorted(self.Items()):
+            total += prob
+            if total >= p:
+                return val
+
+    def ProbGreater(self, x):
+        """
+        Probability that a sample from this Pmf exceeds x.
+        :param x: number
+        :return: float probability.
+        """
+        if isinstance(x, _DictWrapper):
+            return PmfProbLess(self, x)
+
+
+def PmfProbLess(pmf1, pmf2):
+    """
+    Probablity that a value from pmf1 is less than a value from pmf2
+    :param pmf1: Pmf object
+    :param pmf2: Pmf object
+    :return: float probability
+    """
+    total = 0.0
+    for v1, p1 in pmf1.Items():
+        for v2, p2 in pmf2.Items():
+            if v1 < v2:
+                total += p1 * p2
+    return total
 
 
 class Test(object):
