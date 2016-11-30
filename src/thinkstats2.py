@@ -15,6 +15,7 @@ import logging
 from collections import Counter
 import copy
 import math
+import random
 
 
 class FixeWidthVariables(object):
@@ -117,8 +118,9 @@ class _DictWrapper(object):
             # finally, treat it like a list
             self.d.update(Counter(obj))
 
-        # if len(self) > 0 and isinstance(self, Pmf):
-        #     self.Normalize()
+        if len(self) > 0 and isinstance(self, Pmf):
+            self.Normalize()
+
 
     def __hash__(self):
         return id(self)
@@ -132,10 +134,13 @@ class _DictWrapper(object):
     def __eq__(self, other):
         return self.d == other.d
 
+    def __len__(self):
+        return len(self.d)
+
     def __iter__(self):
         return iter(self.d)
 
-    def __iterkeys__(self):
+    def iterkeys(self):
         """
         Returns an iterator over keys
         :return: iterator
@@ -409,7 +414,269 @@ class Pmf(_DictWrapper):
         :return: float probability.
         """
         if isinstance(x, _DictWrapper):
+            return PmfProbGreater(self, x)
+        else:
+            t = [prob for (val, prob) in self.d.items() if val > x]
+            return sum(t)
+
+    def ProbLess(self, x):
+        """
+        Probability that a sample from this Pmf is less than x
+        :param x: number
+        :return: float probability
+        """
+        if isinstance(x, _DictWrapper):
             return PmfProbLess(self, x)
+        else:
+            t = [prob for (val, prob) in self.d.items() if val < x]
+            return sum(t)
+
+    def __lt__(self, obj):
+        """
+        Less than. 相当于重载了<
+        :param obj: number or _DictWrapper
+        :return: float probability
+        """
+        return self.ProbLess(obj)
+
+    def __gt__(self, obj):
+        """
+        Greater than. 相当于重载了>
+        :param obj: number or _DictWrapper
+        :return: float probability
+        """
+        return self.ProbGreater(obj)
+
+    def __ge__(self, obj):
+        """
+        Greater than or equal 相当于重载了>=
+        :param obj: number or _DictWrapper
+        :return: float probability
+        """
+        return 1 - (self < obj)
+
+    def  __le__(self, obj):
+        """
+        Less than or equal.
+        :param obj: number or _DictWrapper
+        :return: float probability
+        """
+        return 1 - (self > obj)
+
+    def Normalize(self, fraction=1.0):
+        """
+        Normalizes this PMF so the sum of all probs is fraction.
+        :param fraction: what the total should be after normalization.
+        :return: the total probability before normalizing.
+        """
+        print("子类中的Normalize方法")
+        if self.log:
+            raise ValueError("Normalize: Pmf is under a log transform")
+
+        total = self.Total()
+        if total == 0.0:
+            raise ValueError('Normalize: total probability is zero.')
+            # logging.wraning('Normalize: total probability is zero.')
+            # return total.
+
+        factor = fraction/total
+        for x in self.d:
+            self.d[x] *= factor
+
+        return total
+
+    def Random(self):
+        """
+        Chooses a random element from this PMF.
+        Note：this is not very efficient. If you plan to call this more than a few times,
+        consider converting to a CDF.
+        :return: float value from the Pmf
+        """
+        target = random.random()
+        total = 0.0
+        for x, p in self.d.items():
+            total += p
+            if total >= target:
+                return x
+
+        # we shouldn't get here
+        raise ValueError('Random: Pmf might not be normalized')
+
+    def Mean(self):
+        """
+        Computes the mean of a PMF.
+        :return: float mean
+        """
+        mean = 0.0
+        for x, p in self.d.items():
+            mean += p * x
+        return mean
+
+    def Var(self, mu=None):
+        """
+        Computes the variance of a PMF.
+        :param mu: the point around which the variance is computed; if omitted, computes the mean
+        :return: float variance
+        """
+        if mu is None:
+            mu = self.Mean()
+
+        var = 0.0
+        for x, p in self.d.items():
+            var += p * (x - mu) ** 2
+        return var
+
+    def Std(self, mu=None):
+        """
+        Computes the standard deviation of a PMF.
+        :param mu: the point around which the variance is computed; if omitted, computes the mean.
+        :return: float standard deviation
+        """
+        var = self.Var(mu)
+        return math.sqrt(var)
+
+    def MaximumLikelihood(self):
+        """
+        Returns the value with the highest probability.
+        :return: float probability.
+        """
+        _, val = max((prob, val) for val, prob in self.Items())
+        return val
+
+    def CredibleInterval(self, percentage=90):
+        """
+        Computes the central credible interval.
+        If percentage=90, computes the 90% CI.
+        :param percentage: float between 0 and 100.
+        :return: sequence of two floats, low and high.
+        """
+        cdf = self.MakeCdf()
+        return cdf.CredibleInterval(percentage)
+
+    def __add__(self, ohter):
+        """
+        Computes the Pmf of the sum of values drawn from self and other.
+        :param ohter: anoher Pmf or a scalar
+        :return: new Pmf
+        """
+        try:
+            return self.AddPmf(ohter)
+        except AttributeError:
+            return self.AddConstant(ohter)
+
+    def AddPmf(self, other):
+        """
+        Computes the Pmf of the sum of values drawn from self and other.
+        :param other: another Pmf
+        :return: new Pmf
+        """
+        pmf = Pmf()
+        for v1, p1 in self.Items():
+            for v2, p2 in other.Itmes():
+                pmf.Incr(v1 + v2, p1 * p2)
+        return pmf
+
+    def AddConstant(self, other):
+        """
+        Computes the Pmf of the sum a constant an value from self.
+        :param other: a number.
+        :return: new Pmf
+        """
+        pmf = Pmf()
+        for v1, p1 in self.Items():
+            pmf.Set(v1 + other, p1)
+        return pmf
+
+    def __sub__(self, other):
+        """
+        Compute the Pmf of the diff of values drawn from self and other.
+        :param other: another Pmf.
+        :return: new Pmf.
+        """
+        try:
+            return self.SubPmf(other)
+        except AttributeError:
+            return self.AddConstant(-other)
+
+    def SubPmf(self, other):
+        """
+        Compute the Pmf of the diff of values drawn froma self and other.
+        :param other: another Pmf.
+        :return: new Pmf.
+        """
+        pmf = Pmf()
+        for v1, p1 in self.Items():
+            for v2, p2 in other.Items():
+                pmf.Incr(v1 - v2, p1 * p2)
+        return pmf
+
+    def __mul__(self, other):
+        """
+        Compute the Pmf ot the product of values drawn from self and other.
+        :param other: another Pmf.
+        :return: new Pmf.
+        """
+        try:
+            return self.MulPmf(other)
+        except AttributeError:
+            return self.MulConstant(other)
+
+    def MulPmf(self, other):
+        """
+        Computes the Pmf of the product of values drawn fromo self and other.
+        :param other: another Pmf.
+        :return: new Pmf
+        """
+        pmf = Pmf()
+        for v1, p1 in self.Items():
+            for v2, p2 in other.Items():
+                pmf.Incr(v1 * v2, p1 * p2)
+        return pmf
+
+    def MulConstant(self, other):
+        """
+        Computes the Pmf of the product of values drawn from self and a constant.
+        :param other:a number
+        :return: new pmf
+        """
+        pmf = Pmf()
+        for v1, p1 in self.Items():
+            pmf.Set(v1*other, p1)
+        return pmf
+
+    def __div__(self, other):
+        """
+        Computes the Pmf of ratio of values drawn from self and other.
+        :param other: another Pmf
+        :return: new Pmf
+        """
+        try:
+            return self.DivPmf(other)
+        except AttributeError:
+            return self.MulConstant(1.0/other)
+
+    __truediv__ = __div__
+
+    def DivPmf(self, other):
+        """
+        Computes the Pmf of the ratio of values drawn from self and other.
+        :param other: another Pmf
+        :return: new Pmf
+        """
+        pmf = Pmf()
+        for v1, p1 in self.Items():
+            for v2, p2, in self.Items():
+                pmf.Incr(v1 / v2, p1 * p2)
+        return pmf
+
+    def Max(self, k):
+        """
+        Computes the CDF of the maximum of k selections from this dist.
+        :param k:
+        :return: new Cdf
+        """
+        cdf = self.MakeCdf()
+        return cdf.Max(k)
 
 
 def PmfProbLess(pmf1, pmf2):
@@ -423,6 +690,21 @@ def PmfProbLess(pmf1, pmf2):
     for v1, p1 in pmf1.Items():
         for v2, p2 in pmf2.Items():
             if v1 < v2:
+                total += p1 * p2
+    return total
+
+
+def PmfProbGreater(pmf1, pmf2):
+    """
+    Probability that a value from pmf1 is less than a value from pmf2.
+    :param pmf1: Pmf object
+    :param pmf2: Pmf object
+    :return: float probability
+    """
+    total = 0.0
+    for v1, p1 in pmf1.Items():
+        for v2, p2 in pmf2.Items():
+            if v1 > v2:
                 total += p1 * p2
     return total
 

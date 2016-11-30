@@ -7,6 +7,7 @@ greenteapress.com
 
 import numpy as np
 import matplotlib.pyplot as pyplot
+import pandas as pd
 
 import warnings
 
@@ -313,5 +314,105 @@ def PrePlot(num=None, rows=None, cols=None):
 
     return ax
 
+
+def Pmf(pmf, **options):
+    """
+    Plots a Pmf or Hist as a line.
+    :param pmf: Hist or Pmf object
+    :param options: keyword args passed to pyplot.plot
+    """
+    xs, ys = pmf.Render()
+    # low, high = min(xs), max(xs)
+
+    width = options.pop('width', None)
+    if width is None:
+        try:
+            width = np.diff(xs).min()
+        except TypeError:
+            warnings.warn("Pmf: Can't compute bar width automatically."
+                          "Check for non-numeric types in Pmf."
+                          "Or try providing width option.")
+    points = []
+    lastx = np.nan
+    lasty = 0
+    for x, y in zip(xs, ys):
+        if (x - lastx) > 1e-5:
+            points.append((lastx, 0))
+            points.append((x, 0))
+        points.append((x, lasty))
+        points.append((x, y))
+        points.append((x+width, y))
+
+        lastx = x + width
+        lasty = y
+    points.append((lastx, 0))
+
+    pxs, pys = zip(*points)
+    print("**" * 10)
+    print(xs)
+    print(ys)
+    print(pxs)
+    print(pys)
+    print("**" * 10)
+
+    align = options.pop('align', 'center')
+    if align == 'center':
+        pxs = np.array(pxs) - width /2.0
+    if align == 'right':
+        pxs = np.array(pxs) - width
+
+    options = _Underride(options, label=pmf.label)
+    Plot(pxs, pys, **options)
+
+
+def Plot(obj, ys=None, style='', **options):
+    """
+    Plots a line.
+    :param obj: sequence of x values, or Series, or anything wiht Render()
+    :param ys: sequence of y values
+    :param style: style string passed along to pyplot.plot
+    :param options: keyword args passed to pypolt.plot
+    """
+    options = _UnderrideColor(options)
+    label = getattr(obj, 'label', '_nolegend_')
+    options = _Underride(options, linewidth=1.5, alpha=0.7, label=label)
+
+    xs = obj
+    if ys is None:
+        if hasattr(obj, 'Render'):
+            xs, ys = obj.Render()
+        if isinstance(obj, pd.Series):
+            ys = obj.values
+            xs = obj.index
+
+    if ys is None:
+        pyplot.plot(xs, style, **options)
+    else:
+        pyplot.plot(xs, ys, style, **options)
+
+
+def Pmfs(pmfs, **options):
+    """
+    Plots a sequence of PMFs.
+    Options are passed along for all PMFs. If you want different options for each pmf,
+    make multiple calls to Pmf.
+    :param pmfs: sequence of PMF objecs
+    :param options: keyword args passed to pyplot.plot
+    """
+    for pmf in pmfs:
+        Pmf(pmf, **options)
+
+
+def SubPlot(plot_number, rows=None, cols=None, **options):
+    """
+    Configures the number of subplots and changes the current plot.
+    :param plot_number: int
+    :param rows: int
+    :param cols: int
+    :param options: passed to subplot
+    """
+    rows = rows or SUBPLOT_ROWS
+    cols = cols or SUBPLOT_COLS
+    return pyplot.subplot(rows, cols, plot_number, **options)
 
 
