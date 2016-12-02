@@ -8,6 +8,7 @@ Copyright 2014 Allen B. Downey
 License: GNU GPLv3 http://www.gnu.org/licenses/gpl.html
 """
 
+import bisect
 import re
 import pandas as pd
 import numpy as np
@@ -369,8 +370,152 @@ class Pdf(_DictWrapper):
     pass
 
 
-class Cdf(_DictWrapper):
-    pass
+class Cdf(object):
+    """
+    Represents a cumulative distribution function.
+    Attributes:
+        xs: sequence of values
+        ps: sequence of probabilities
+        label: string used as a graph label.
+    """
+    def __init__(self, obj=None, ps=None, label=None):
+        """
+        Initializes.
+        If ps is provided, obj must be the corresponding list of values.
+        :param obj: Hist, Pmf, Cdf, Pdf, dict, pandas Series, list of pairs
+        :param ps: list of cumulative probabilities.
+        :param label: string label
+        """
+        self.label = label if label is not None else '_nolegend_'
+
+        if isinstance(obj, (_DictWrapper, Cdf, Pdf)):
+            if not label:
+                self.label = label if label is not None else obj.label
+
+        if obj is None:
+            # caller does not provides obj, make an empty Cdf.
+            self.xs = np.asarray([])
+            self.ps = np.asarray([])
+            if ps is not None:
+                logging.warning("Cdf: can't pass ps without also passing xs.")
+            return
+        else:
+            # if the caller provide xs and ps, just store them
+            if ps is not None:
+                if isinstance(ps, str):
+                    logging.warning("Cdf: ps can't be a string")
+
+                    self.xs = np.asarray(obj)
+                    self.ps = np.asarray(ps)
+                    return
+
+        # caller has provided just obj, not ps
+        if isinstance(obj, Cdf):
+            self.xs = copy.copy(obj.xs)
+            self.ps = copy.copy(obj.ps)
+            return
+
+        if isinstance(obj, _DictWrapper):
+            dw = obj
+        else:
+            dw = Hist(obj)
+
+        if len(dw) == 0:
+            self.xs = np.asarray([])
+            self.ps = np.asarray([])
+            return
+
+        xs, freqs = zip(*sorted(dw.Items()))
+        self.xs = np.asarray(xs)
+        self.ps = np.cumsum(freqs, dtype=np.float)
+        self.ps /= self.ps[-1]
+
+    def __str__(self):
+        return 'Cdf(%s, %s)' % (str(self.xs), str(self.ps))
+
+    __repr__ = __str__
+
+    def __len__(self):
+        return len(self.xs)
+
+    def __getitem__(self, x):
+        return self.Prob(x)
+
+    def __setitem__(self):
+        raise UnimplementedMethodException()
+
+    def __delitem__(self):
+        raise UnimplementedMethodException()
+
+    def __eq__(self, other):
+        return np.all(self.xs == other.xs) and np.all(self.ps == other.ps)
+
+    def Copy(self, label=None):
+        """
+        Returns a copy of this Cdf
+        :param label: string label for thre new Cdf
+        """
+        if label is None:
+            label = self.label
+        return Cdf(list(self.xs), list(self.ps), label=label)
+
+    def MakePmf(self, label=None):
+        """Makes a Pmf."""
+        if label is None:
+            label = self.label
+        return Pmf(self, label=label)
+
+    def Values(self):
+        """
+        Returns a sorted list of values
+        """
+        return self.xs
+
+    def Items(self):
+        """
+        Returns a sorted sequence of (value, probability) pairs.
+        Note: in Python3, returns an iterator.
+        """
+        a = self.ps
+        b = np.roll(a, 1)
+        b[0] = 0
+        return zip(self.xs, a-b)
+
+    def Shift(self, term):
+        """
+        Adds a term to the xs.
+        :param term: how much to add
+        """
+        new = self.Copy()
+        # don't use +=, or else an int array + float yields int array
+        new.xs = new.xs + term
+        return new
+
+    def Scale(self, factor):
+        """
+        Multiplies the xs ba a factor.
+        :param factor: what to multiply by
+        """
+        new = self.Copy()
+        # don't use *=, or else an int array * float yields int array
+        new.xs = new.xs * factor
+        return new
+
+    def Prob(self, x):
+        """
+        Returns CDF(x), the probability that corresponds to value x.
+        :param x: number
+        :return: float probability
+        """
+        if x < self.xs[0]:
+            return 0.0
+        index = bisect.bisect()
+
+
+
+
+
+
 
 
 class Pmf(_DictWrapper):
@@ -716,4 +861,14 @@ class Test1(object):
     pass
 
 
+def RandomSeed(x):
+    """
+    Initialize the random and np.random generators.
+    :param x: int seed
+    """
+    random.seed(x)
+    np.random.seed(x)
 
+
+class UnimplementedMethodException(Exception):
+    """Exception if someone calls a method that should be overridden."""
