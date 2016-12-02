@@ -509,8 +509,75 @@ class Cdf(object):
         """
         if x < self.xs[0]:
             return 0.0
-        index = bisect.bisect()
+        index = bisect.bisect(self.xs, x)
+        p = self.ps[index - 1]
+        return p
 
+    def Probs(self, xs):
+        """
+        Gets probabilities for a sequence of values.
+        :param xs: any sequence that can be converted to Numpy array
+        :return: Numpy array of cumulative probabilities.
+        """
+        xs = np.array(xs)
+        index = np.searchsorted(self.xs, xs, side='right')
+        ps = self.ps[index-1]
+        ps[xs < self.xs[0]] = 0.0
+        return ps
+
+    ProbArray = Probs
+
+    def Value(self, p):
+        """
+        REturns InverseCDF(p), the value that corresponds to probability p.
+        :param p: number in the range [0,1]
+        :return: number value
+        """
+        if p < 0 or p > 1:
+            raise ValueError('Probability p must be in range [0, 1]')
+
+        index = bisect.bisect_left(self.ps, p)
+        return self.xs[index]
+
+    def ValueArray(self, ps):
+        """
+        Returns InverseCDF(p), the value that corresponds to probability p.
+        :param ps: NumPy array of numbers
+        :return: Numpy array of values
+        """
+        ps = np.asarray(ps)
+        if np.any(ps < 0) or np.any(ps > 1):
+            raise ValueError('Probability p must be in range [0, 1]')
+
+        index = np.searchsorted(self.ps, ps, side='left')
+        return self.xs[index]
+
+    def Percentile(self, p):
+        """
+        Returns the value that corresponds to percentile p
+        :param p: number in the range [0, 100]
+        :return: number value
+        """
+        return self.Value(p / 100.0)
+
+    def PercentileRank(self, x):
+        """
+        Returns the percentile rank of the value x.
+        :param x: potential value in the CDF
+        :return: percentile rank in the range 0 to 100
+        """
+        return self.Prob(x) * 100.0
+
+    def Random(self):
+        """Choses a random value from this distribution."""
+        return self.Value(random.random())
+
+    def Sample(self, n):
+        """
+        Generates a random sample from
+        :param n:
+        :return:
+        """
 
 
 
