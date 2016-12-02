@@ -529,7 +529,7 @@ class Cdf(object):
 
     def Value(self, p):
         """
-        REturns InverseCDF(p), the value that corresponds to probability p.
+        Returns InverseCDF(p), the value that corresponds to probability p.
         :param p: number in the range [0,1]
         :return: number value
         """
@@ -574,15 +574,62 @@ class Cdf(object):
 
     def Sample(self, n):
         """
-        Generates a random sample from
-        :param n:
+        Generates a random sample from this distribution
+        :param n: int length of the sampel
+        :return: Numpy array
+        """
+        ps = np.random.random(n)
+        return self.ValueArray(ps)
+
+    def Mean(self):
+        """
+        Computes the mean of a CDF
+        :return: float mean
+        """
+        old_p = 0
+        total = 0.0
+        for x, new_p in zip(self.xs, self.ps):
+            p = new_p - old_p
+            total += p * x
+            old_p = new_p
+        return total
+
+    def CredibleInterval(self, percentage=90):
+        """
+        Computes the central credible interval
+        If percentage=90, computes the 90% CI.
+        :param percentage: float between 0 and 100
+        :return: sequence of two floats, low and high
+        """
+        prob = (1 - percentage / 100.0)
+        interval = self.Value(prob), self.Value(1-prob)
+        return interval
+
+    ConfidenceInterval = CredibleInterval
+
+    def _Round(self, multiplier=1000.):
+        """
+        An entry is added to the cdf only if the percentile differs from the previous
+        value in a significant digit, where the number of significant digits is determined
+        by multiplier. The default is 1000, which kepes log10(1000) = 3 significant digits.
+        :param multiplier:
         :return:
         """
+        # todo (write this method)
+        raise UnimplementedMethodException
 
-
-
-
-
+    def Render(self, **options):
+        """
+        Generates a sequence of points suitable for plotting.
+        An empirical CDF is a step function; linear interpolation can be misleading
+        :param options: options are ignored
+        """
+        def interleave(a, b):
+            c = np.empty(a.shape[0] + b.shape[0])
+            c[::2] = a
+            c[1::2] = b
+            return c
+        
 
 
 class Pmf(_DictWrapper):
